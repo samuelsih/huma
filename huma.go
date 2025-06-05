@@ -630,8 +630,13 @@ func Register[I, O any](api API, op Operation, handler func(context.Context, *I)
 	oapi := api.OpenAPI()
 	registry := oapi.Components.Schemas
 
-	if op.Method == "" || op.Path == "" {
-		panic("method and path must be specified in operation")
+	if op.Method == "" {
+		panic("method must be specified in operation")
+	}
+	if op.Path == "" {
+		if grp, ok := api.(*Group); !ok || len(grp.prefixes) == 0 {
+			panic("path must be specified in operation")
+		}
 	}
 	initResponses(&op)
 
@@ -797,7 +802,7 @@ func Register[I, O any](api API, op Operation, handler func(context.Context, *I)
 								pb.Push(p.Name)
 
 								value, ok := form.Value[p.Name]
-								if !ok {
+								if !ok || (len(value) > 0 && value[0] == "") {
 									_, isFile := form.File[p.Name]
 									if !op.SkipValidateParams && p.Required && !isFile {
 										res.Add(pb, "", "required "+p.Loc+" parameter is missing")

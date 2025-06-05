@@ -300,7 +300,7 @@ func (a *api) Negotiate(accept string) (string, error) {
 		ct = a.formatKeys[0]
 	}
 	if _, ok := a.formats[ct]; !ok {
-		return ct, fmt.Errorf("unknown content type: %s", ct)
+		return ct, fmt.Errorf("%w: %s", ErrUnknownContentType, ct)
 	}
 	return ct, nil
 }
@@ -323,7 +323,7 @@ func (a *api) Marshal(w io.Writer, ct string, v any) error {
 		f, ok = a.formats[ct[start:]]
 	}
 	if !ok {
-		return fmt.Errorf("unknown content type: %s", ct)
+		return fmt.Errorf("%w: %s", ErrUnknownContentType, ct)
 	}
 	return f.Marshal(w, v)
 }
@@ -381,12 +381,12 @@ func NewAPI(config Config, a Adapter) API {
 		config.OpenAPI.OpenAPI = "3.1.0"
 	}
 
-	if config.OpenAPI.Components == nil {
-		config.OpenAPI.Components = &Components{}
+	if config.Components == nil {
+		config.Components = &Components{}
 	}
 
-	if config.OpenAPI.Components.Schemas == nil {
-		config.OpenAPI.Components.Schemas = NewMapRegistry("#/components/schemas/", DefaultSchemaNamer)
+	if config.Components.Schemas == nil {
+		config.Components.Schemas = NewMapRegistry("#/components/schemas/", DefaultSchemaNamer)
 	}
 
 	if config.DefaultFormat == "" && config.Formats["application/json"].Marshal != nil {
@@ -495,7 +495,7 @@ func NewAPI(config Config, a Adapter) API {
 			// Some routers dislike a path param+suffix, so we strip it here instead.
 			schema := strings.TrimSuffix(ctx.Param("schema"), ".json")
 			ctx.SetHeader("Content-Type", "application/json")
-			b, _ := json.Marshal(config.OpenAPI.Components.Schemas.Map()[schema])
+			b, _ := json.Marshal(config.Components.Schemas.Map()[schema])
 			b = rxSchema.ReplaceAll(b, []byte(config.SchemasPath+`/$1.json`))
 			ctx.BodyWriter().Write(b)
 		})

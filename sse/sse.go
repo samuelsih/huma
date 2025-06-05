@@ -9,6 +9,8 @@ import (
 	"os"
 	"reflect"
 	"runtime/debug"
+	"slices"
+	"strings"
 	"time"
 
 	"github.com/danielgtaylor/huma/v2"
@@ -105,6 +107,10 @@ func Register[I any](api huma.API, op huma.Operation, eventTypeMap map[string]an
 		dataSchemas = append(dataSchemas, s)
 	}
 
+	slices.SortFunc(dataSchemas, func(b, c *huma.Schema) int {
+		return strings.Compare(b.Title, c.Title)
+	})
+
 	schema := &huma.Schema{
 		Title:       "Server Sent Events",
 		Description: "Each oneOf object in the array represents one possible Server Sent Events (SSE) message, serialized as UTF-8 text according to the SSE specification.",
@@ -169,10 +175,10 @@ func Register[I any](api huma.API, op huma.Operation, eventTypeMap map[string]an
 
 					// Write optional fields
 					if msg.ID > 0 {
-						bw.Write([]byte(fmt.Sprintf("id: %d\n", msg.ID)))
+						bw.Write(fmt.Appendf(nil, "id: %d\n", msg.ID))
 					}
 					if msg.Retry > 0 {
-						bw.Write([]byte(fmt.Sprintf("retry: %d\n", msg.Retry)))
+						bw.Write(fmt.Appendf(nil, "retry: %d\n", msg.Retry))
 					}
 
 					event, ok := typeToEvent[deref(reflect.TypeOf(msg.Data))]
